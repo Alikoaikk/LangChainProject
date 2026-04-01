@@ -8,5 +8,5 @@ def loadFile (name) -> list[Document] :
 
   loader = PyPDFLoader(f"data/{name}")
   document = loader.load()
-  print(document[0].page_content)
+  # print(document[0].page_content)
   return document
