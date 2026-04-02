@@ -2,8 +2,6 @@
 
 A Retrieval-Augmented Generation (RAG) application that allows you to ask questions about PDF documents using LangChain with Ollama or OpenAI.
 
-**Author**: alikoaik | [github.com/alikoaik](https://github.com/alikoaik)
-
 ## What This Project Does
 
 This is a **smart PDF question-answering system** that lets you ask questions about any PDF document in natural language.
