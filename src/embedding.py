@@ -13,7 +13,7 @@ def embedding(chunks) -> FAISS :
   embeddingData = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
   print("✓ Model loaded!")
 
-  # print(f"⏳ Creating vector store from {len(chunks)} chunks...")
+  # print(f"Creating vector store from {len(chunks)} chunks...")
   VectorStore = FAISS.from_documents(chunks, embedding=embeddingData)
   # print("✓ Vector store created!")
   return VectorStore

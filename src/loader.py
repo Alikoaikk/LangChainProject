@@ -1,3 +1,10 @@
+# ╔════════════════════════════════════════════╗
+# ║            ALIKOAIK
+# ║  FILE      │  loader.py
+# ║  DATE      │  03/04/2026
+# ║  GITHUB    │  github.com/alikoaik
+# ╚════════════════════════════════════════════╝
+
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.documents import Document
 

@@ -6,6 +6,7 @@
 # ╚═══════════════════════════════════════════════╝
 
 from dotenv import load_dotenv
+import os
 
 # Load environment variables first
 load_dotenv()
@@ -13,10 +14,27 @@ load_dotenv()
 from src.loader import loadFile
 from src.split import spliting
 from src.embedding import embedding
-from src.qa import ask_question
+from src.qa import ask_question as ask_question_ollama
+from src.qa_openai import ask_question as ask_question_openai
 
 def main() :
-    name = input("Enter the name of the file exist in data folder\n")
+    # Choose LLM provider
+    print("Choose your LLM provider:")
+    print("1. Ollama (Local)")
+    print("2. OpenAI (API Key)")
+    choice = input("Enter your choice (1 or 2): ").strip()
+
+    if choice == "1":
+        ask_question = ask_question_ollama
+        print("Using Ollama (Local LLM)")
+    elif choice == "2":
+        ask_question = ask_question_openai
+        print("Using OpenAI API")
+    else:
+        print("Invalid choice. Defaulting to Ollama.")
+        ask_question = ask_question_ollama
+
+    name = input("\nEnter the name of the file exist in data folder\n")
     document = loadFile(name)
     chunks = spliting(document)
     vectorstore = embedding(chunks)
@@ -30,6 +48,8 @@ def main() :
             print("Goodbye!")
             break
 
+        os.system('clear' if os.name != 'nt' else 'cls')
+        print(f"Question: {question}")
         answer = ask_question(vectorstore, question)
         print(f"\nAnswer: {answer}")
 
