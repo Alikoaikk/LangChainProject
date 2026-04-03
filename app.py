@@ -8,7 +8,6 @@
 from dotenv import load_dotenv
 import os
 
-# Load environment variables first
 load_dotenv()
 
 from src.loader import loadFile
