@@ -234,4 +234,4 @@ GitHub: [github.com/alikoaik](https://github.com/alikoaik)
 
 ---
 
-**Made with ❤️ using LangChain, Ollama, and OpenAI**
+**using LangChain, Ollama, and OpenAI**
