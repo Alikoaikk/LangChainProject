@@ -8,15 +8,25 @@
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
-def embedding(chunks) -> FAISS :
-  print("\n⏳ Loading embedding model (first time may take 1-2 minutes)...")
-  embeddingData = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-  print("✓ Model loaded!")
+def embedding(chunks) -> FAISS:
+    if not chunks:
+        raise ValueError("No chunks provided — the document may be empty or unsupported.")
 
-  # print(f"Creating vector store from {len(chunks)} chunks...")
-  VectorStore = FAISS.from_documents(chunks, embedding=embeddingData)
-  # print("✓ Vector store created!")
-  return VectorStore
+    print("\n⏳ Loading embedding model (first time may take 1-2 minutes)...")
+    try:
+        embeddingData = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    except Exception as e:
+        raise RuntimeError(f"Failed to load embedding model: {e}") from e
+    print("✓ Model loaded!")
+
+    print(f"Creating vector store from {len(chunks)} chunks...")
+    try:
+        VectorStore = FAISS.from_documents(chunks, embedding=embeddingData)
+    except Exception as e:
+        raise RuntimeError(f"Failed to create vector store: {e}") from e
+    print("✓ Vector store created!")
+
+    return VectorStore
 
 # HOW THIS WORKS:
 #

@@ -10,14 +10,15 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
+import httpx
 
-def ask_question(vectorstore: FAISS, question: str) -> str :
+def ask_question(vectorstore: FAISS, question: str) -> str:
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
+    llm = ChatOllama(model="llama3.2", temperature=0)
 
-  retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
-  llm = ChatOllama(model="llama3.2", temperature=0)
+    template = """Answer the question based only on the following context:
 
-  # Create prompt template
-  template = """Answer the question based only on the following context:
+each answer use a emoji to express the tone of the answer, for example:
 
 {context}
 
@@ -25,21 +26,28 @@ Question: {question}
 
 Answer:"""
 
-  prompt = ChatPromptTemplate.from_template(template)
+    prompt = ChatPromptTemplate.from_template(template)
 
-  # Create chain
-  def format_docs(docs):
-      return "\n\n".join(doc.page_content for doc in docs)
+    def format_docs(docs):
+        return "\n\n".join(doc.page_content for doc in docs)
 
-  chain = (
-      {"context": retriever | format_docs, "question": RunnablePassthrough()}
-      | prompt
-      | llm
-      | StrOutputParser()
-  )
+    chain = (
+        {"context": retriever | format_docs, "question": RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
 
-  result = chain.invoke(question)
-  return result
+    try:
+        result = chain.invoke(question)
+    except (httpx.ConnectError, ConnectionRefusedError):
+        raise ConnectionError(
+            "Cannot connect to Ollama. Make sure it is running with: ollama serve"
+        )
+    except Exception as e:
+        raise RuntimeError(f"Ollama error: {e}") from e
+
+    return result
 
 # HOW THIS WORKS:
 #
@@ -55,4 +63,3 @@ Answer:"""
 #
 # 3. qa_chain({"query": question}):
 #    - Returns dict: {"result": "answer text", "source_documents": [chunks]}
-
