@@ -1,237 +1,254 @@
-# LangChain RAG PDF Q&A System
+# 📄 LangChain RAG PDF Q&A System
 
-A Retrieval-Augmented Generation (RAG) application that allows you to ask questions about PDF documents using LangChain with Ollama or OpenAI.
+A production-ready **Retrieval-Augmented Generation (RAG)** system that intelligently answers questions about PDF documents. Uses LangChain's modern LCEL chains, vector embeddings, and supports both local (Ollama) and cloud-based (OpenAI) LLMs.
 
-## What This Project Does
+## 🎯 What This Project Demonstrates
 
-This is a **smart PDF question-answering system** that lets you ask questions about any PDF document in natural language.
+This project showcases a complete implementation of the **RAG pattern** - combining intelligent document retrieval with generative AI to answer questions grounded in actual document content, eliminating hallucinations.
 
-### How It Works (Step by Step)
+### Architecture Overview
 
-1. **📄 Load PDF**: You provide a PDF filename - the app reads it using PyPDFLoader
-2. **✂️ Split Text**: The PDF is broken into small chunks (500 characters each with 50 character overlap for context)
-3. **🧠 Create Embeddings**: Each chunk is converted into numerical vectors (embeddings) using HuggingFace's AI model
-4. **💾 Store in Vector Database**: All embeddings are stored in FAISS (a fast similarity search database)
-5. **❓ Ask Questions**: You type a question - the system finds the top 4 most relevant chunks
-6. **✨ Generate Answer**: Your chosen LLM (Ollama or OpenAI) reads those chunks and generates a precise answer
-
-**Example**: If you upload a medical research paper and ask "What are the side effects?", the system finds relevant sections and gives you an accurate answer based only on that document.
-
-## Features
-
-- 📄 Process PDF documents of any size
-- ✂️ Intelligent text chunking with overlap for better context
-- 🧠 Local embeddings using HuggingFace (no API keys needed)
-- 🔄 Choose between Ollama (local) or OpenAI (API) for question answering
-- 💾 FAISS vector store for lightning-fast similarity search
-- 🔁 Interactive Q&A loop (ask multiple questions about the same document)
-- 🧹 Clean terminal interface showing only current question and answer
-
-## Prerequisites
-
-- Python 3.8 or higher
-- Ollama installed on your system (for local option)
-- OpenAI API key (for OpenAI option)
-
-## Ollama Installation & Setup
-
-Ollama is an open-source tool that lets you run large language models locally on your machine.
-
-### macOS Installation
-
-```bash
-# Option 1: Using the install script
-curl -fsSL https://ollama.com/install.sh | sh
-
-# Option 2: Using Homebrew
-brew install ollama
+```
+PDF Input
+   ↓
+[PyPDFLoader] → Extract text & metadata
+   ↓
+[RecursiveCharacterTextSplitter] → Chunk (500 chars, 50 overlap)
+   ↓
+[HuggingFace Embeddings] → Convert chunks to vectors (all-MiniLM-L6-v2)
+   ↓
+[FAISS Vector DB] → Store embeddings for fast similarity search
+   ↓
+User Question → [Retriever] → Top 4 relevant chunks
+   ↓
+[LCEL Chain] → Format context + question
+   ↓
+[LLM] → Ollama (local llama3.2) OR OpenAI (gpt-4o-mini)
+   ↓
+Grounded Answer (from document only)
 ```
 
-### Linux Installation
+## ✨ Key Features
+
+- **🔗 LCEL Chains**: Modern LangChain Expression Language for composable, production-ready pipelines
+- **🧠 Intelligent Retrieval**: FAISS vector database with configurable similarity search (k=4 top chunks)
+- **📊 Smart Chunking**: Recursive text splitting with 50-character overlap to preserve context boundaries
+- **🌐 Multi-Provider LLMs**: 
+  - **Ollama** - Local inference (llama3.2), free, offline-capable
+  - **OpenAI** - Cloud API (gpt-4o-mini), faster, more capable
+- **🔍 Embeddings**: HuggingFace's `all-MiniLM-L6-v2` (free, local, no API keys)
+- **⚙️ Production Error Handling**: Connection checks, API validation, graceful fallbacks
+- **❄️ Temperature Control**: Deterministic answers (temperature=0) to prevent hallucination
+- **📝 Grounded Answers**: Prompts LLM to use only document context
+
+## 🛠 Tech Stack
+
+| Component | Technology | Why? |
+|-----------|-----------|------|
+| **Framework** | LangChain + LCEL | Modern, composable, production-ready |
+| **Vector Storage** | FAISS | Fast similarity search, local, no infrastructure |
+| **Embeddings** | HuggingFace (all-MiniLM-L6-v2) | Free, high-quality, runs locally |
+| **Local LLM** | Ollama (llama3.2) | Free inference, offline, learning-friendly |
+| **Cloud LLM** | OpenAI API (gpt-4o-mini) | Powerful, fast, cloud-based option |
+| **PDF Loading** | PyPDFLoader | Built into LangChain, handles metadata |
+| **Text Splitting** | RecursiveCharacterTextSplitter | Preserves semantic boundaries |
+
+## 📋 Prerequisites
+
+- Python 3.8+
+- Ollama (for local LLM option) OR OpenAI API key
+- ~2GB disk space (for first embedding model download)
+
+## 🚀 Quick Start
+
+### 1. Clone & Setup
 
 ```bash
-# Using the official install script
-curl -fsSL https://ollama.com/install.sh | sh
-```
-
-### Start Ollama Server
-
-**IMPORTANT**: Ollama must be running before you use this application with the local option.
-
-```bash
-# Start Ollama server (keep this terminal open)
-ollama serve
-```
-
-The server will run on `http://localhost:11434`
-
-### Download the Llama 3.2 Model
-
-```bash
-# Pull and run the Llama 3.2 model
-ollama run llama3.2
-```
-
-This downloads the model (~2GB) and starts an interactive chat. Type `/bye` to exit.
-
-### Verify Ollama is Working
-
-```bash
-# List installed models
-ollama list
-
-# Test the model
-ollama run llama3.2 "What is Python?"
-```
-
-### Common Ollama Commands
-
-```bash
-ollama serve              # Start Ollama server
-ollama list               # Show installed models
-ollama pull llama3.2      # Download a model
-ollama run llama3.2       # Run a model interactively
-ollama rm llama3.2        # Remove a model
-```
-
-## OpenAI API Setup
-
-If you want to use OpenAI instead of Ollama:
-
-1. Get an API key from [OpenRouter](https://openrouter.ai/) or [OpenAI](https://platform.openai.com/)
-2. Create a `.env` file in the project root
-3. Add your API key:
-
-```bash
-OPENAI_API_KEY=your-api-key-here
-OPENAI_BASE_URL=https://openrouter.ai/api/v1
-```
-
-## Python Project Setup
-
-### 1. Clone the Repository
-
-```bash
-git clone <your-repo-url>
+git clone <repo-url>
 cd LangChain
+make setup  # Creates venv + installs all dependencies
 ```
 
-### 2. Create Virtual Environment
+### 2. Configure LLM Provider
 
+**Option A: Local (Ollama)**
 ```bash
-# Create virtual environment
-python3 -m venv venv
-
-# Activate it
-source venv/bin/activate  # macOS/Linux
+# Install Ollama: https://ollama.ai
+ollama serve                    # Start server (keep running)
+ollama pull llama3.2           # Download model (~2GB)
 ```
 
-### 3. Install Dependencies
-
+**Option B: OpenAI/OpenRouter**
 ```bash
-# Install all required packages
-pip install -r requirements.txt
-
-# Install additional packages
-pip install langchain-community langchain-huggingface langchain-ollama langchain-openai pypdf faiss-cpu python-dotenv
+echo "OPENAI_API_KEY=your-key-here" > .env
+echo "OPENAI_BASE_URL=https://openrouter.ai/api/v1" >> .env
 ```
 
-### 4. Set Up Data Folder
+### 3. Prepare Documents
 
 ```bash
-# Create data folder for your PDFs
 mkdir -p data
-
-# Copy your PDF files to the data folder
-cp /path/to/your/document.pdf data/
+cp your-document.pdf data/
 ```
 
-### 5. Create .env File
+### 4. Run
 
 ```bash
-# Create .env file for OpenAI API key (optional, only if using OpenAI)
-touch .env
+make run
 ```
 
-Add your credentials:
-```
-OPENAI_API_KEY=your-api-key-here
-OPENAI_BASE_URL=https://openrouter.ai/api/v1
-```
+## 🔨 Makefile Commands
 
-## Usage
+All setup and execution is handled by make:
 
-### Step 1: Start Ollama Server (If Using Ollama)
+| Command | What it does |
+|---------|------------|
+| `make help` | Show all available commands |
+| `make setup` | Create venv + install dependencies (one-time) |
+| `make install` | Install dependencies into existing venv |
+| `make run` | Run the application |
+| `make freeze` | Update requirements.txt from current environment |
+| `make lint` | Check syntax on all Python files |
+| `make clean` | Remove venv and cache files |
 
-Open a terminal and run:
-
-```bash
-ollama serve
-```
-
-Keep this terminal open while using the application.
-
-### Step 2: Run the Application
-
-In a new terminal:
-
-```bash
-# Activate virtual environment
-source venv/bin/activate
-
-# Run the app
-python app.py
-```
-
-### Step 3: Choose Your LLM Provider
+## 📖 Usage
 
 ```
 Choose your LLM provider:
 1. Ollama (Local)
 2. OpenAI (API Key)
 Enter your choice (1 or 2): 1
-```
 
-### Step 4: Load Document and Ask Questions
-
-```
-Enter the name of the file exist in data folder
-> mydocument.pdf
+Enter the name of the file in the data folder: your-document.pdf
 
 ✓ Document loaded and ready for questions!
 
-Ask a question (or 'quit' to exit): What is this document about?
+Ask a question (or 'quit' to exit): What are the main points?
 
-Question: What is this document about?
+⏳ Loading embedding model (first time may take 1-2 minutes)...
+✓ Model loaded!
+Creating vector store from 45 chunks...
+✓ Vector store created!
 
-Answer: This document discusses machine learning algorithms...
+Question: What are the main points?
+Answer: Based on the document... [AI-generated answer based only on document content]
 
 Ask a question (or 'quit' to exit): quit
 Goodbye!
 ```
 
-## Project Structure
+## 🏗 Project Structure
 
 ```
 LangChain/
-├── app.py                 # Main entry point - orchestrates the entire workflow
+├── app.py                    # Main orchestrator & user interaction
 ├── src/
-│   ├── loader.py          # Loads PDF files from data/ folder
-│   ├── split.py           # Splits documents into chunks
-│   ├── embedding.py       # Creates vector embeddings using HuggingFace
-│   ├── qa.py              # Handles question answering using Ollama
-│   └── qa_openai.py       # Handles question answering using OpenAI
-├── data/                  # Place your PDF files here
-├── requirements.txt       # Python dependencies
-├── .env                   # Environment variables (API keys)
-└── README.md             # Documentation
+│   ├── loader.py            # PDF loading with error handling
+│   ├── split.py             # Recursive text chunking (500 chars, 50 overlap)
+│   ├── embedding.py         # HuggingFace embeddings + FAISS vector store
+│   ├── qa.py                # LCEL chain for Ollama-based Q&A
+│   └── qa_openai.py         # LCEL chain for OpenAI-based Q&A
+├── data/                    # Place PDFs here
+├── requirements.txt         # All dependencies
+├── .env                     # API keys (not in git)
+├── .env.example             # Template
+├── INTERVIEW_PREP.md        # Learning guide & concepts
+└── README.md               # This file
 ```
 
-## Contact
+## 🔑 Core Concepts
 
-**alikoaik**
-GitHub: [github.com/alikoaik](https://github.com/alikoaik)
+### Retrieval-Augmented Generation (RAG)
+Instead of relying solely on an LLM's training data, RAG:
+1. **Retrieves** relevant documents/chunks first
+2. **Augments** the prompt with this retrieved context
+3. **Generates** answers using only this context
+
+✅ Prevents hallucination  
+✅ Answers about documents LLM never saw  
+✅ Grounded in actual source material  
+
+### Vector Embeddings & Similarity Search
+- Text chunks → 384-dimensional vectors (HuggingFace)
+- User question → Same embedding space
+- FAISS finds top-4 chunks with highest cosine similarity
+- These become context for LLM
+
+### LCEL Chains (LangChain Expression Language)
+```python
+chain = (
+    {"context": retriever | format_docs, "question": RunnablePassthrough()}
+    | prompt
+    | llm
+    | StrOutputParser()
+)
+```
+- Declarative, composable pipeline
+- Easy to debug, test, and modify
+- Supports streaming and async out-of-the-box
+
+### Temperature Control
+- `temperature=0` → Deterministic, factual (our choice for Q&A)
+- `temperature=0.7` → Balanced creativity
+- `temperature=2.0` → Very creative, may hallucinate
+
+## 🎓 Learning Value
+
+This project demonstrates:
+- ✅ Modern RAG pattern implementation
+- ✅ LangChain LCEL for production pipelines
+- ✅ Vector databases and semantic search
+- ✅ Multi-provider LLM abstraction
+- ✅ Production-grade error handling
+- ✅ Environment management and security
+- ✅ Prompt engineering for grounded responses
+
+Perfect for portfolios, interviews, or understanding how modern AI systems work.
+
+## 🔧 Customization
+
+**Adjust retrieval behavior** in `src/qa.py` / `src/qa_openai.py`:
+```python
+retriever = vectorstore.as_retriever(search_kwargs={"k": 4})  # Top 4 chunks
+```
+- Higher `k` = more context, slower, may include noise
+- Lower `k` = faster, less context
+
+**Modify chunking strategy** in `src/split.py`:
+```python
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500,        # Larger = more context per chunk
+    chunk_overlap=50       # Larger = more redundancy, slower
+)
+```
+
+**Change embedding model** in `src/embedding.py`:
+```python
+HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+# Other options: "all-mpnet-base-v2" (larger, slower, more accurate)
+```
+
+## 🚨 Error Handling
+
+The project includes robust error handling for:
+- Missing PDF files (shows available files)
+- Ollama connection failures
+- OpenAI API errors (invalid keys, rate limits)
+- Empty/unreadable PDFs
+- First-time embedding model download
+
+## 📚 Interview Prep
+
+See `INTERVIEW_PREP.md` for:
+- 12 common interview questions about RAG
+- Concept explanations
+- Architecture deep-dives
+- 30-second elevator pitch
+
+## 🤝 Contributing
+
+Built by **alikoaik** | [GitHub](https://github.com/alikoaik)
 
 ---
 
-**using LangChain, Ollama, and OpenAI**
+**What makes RAG special**: Traditional LLMs answer from their training data. RAG systems answer from your data. That's the difference between a chatbot and a document understanding system.
